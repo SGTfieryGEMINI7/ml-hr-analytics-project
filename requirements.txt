@@ -1,6 +1,9 @@
+# Requires Python >= 3.12 (xgboost 3.4.1 does not support older versions).
+# Results were produced with Python 3.14.2.
 scikit-learn==1.9.1
 xgboost==3.4.1
 pandas==3.1.1
 numpy==2.4.6
+scipy==1.17.1
 matplotlib==3.11.2
 seaborn==0.13.2
