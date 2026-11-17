@@ -115,17 +115,6 @@ def main():
   df = pd.get_dummies(df, columns=nominal_cols, drop_first=True)
   print(f"One-hot encoded nominal columns. New shape: {df.shape}")
 
-  scaler = StandardScaler()
-  scale_cols = [
-      "Age",
-      "MonthlyIncome",
-      "TotalWorkingYears",
-      "DistanceFromHome",
-      "IncomePerYear",
-  ]
-  df[scale_cols] = scaler.fit_transform(df[scale_cols])
-  print("Standardized continuous numerical features using StandardScaler.")
-
   # Model Training, Reproducible Split & Cross-Validation Setup 
   print("\n--- 9. Cross-Validation & Model Evaluation ---")
 
@@ -136,6 +125,18 @@ def main():
   X_train, X_test, y_train, y_test = train_test_split(
       X, y, test_size=0.2, random_state=42, stratify=y
   )
+
+  # Standardize continuous features AFTER the split: the scaler is fitted on
+  # the training set only and then applied to the test set, so no test-set
+  # statistics leak into training.
+  scale_cols = ["Age", "MonthlyIncome", "TotalWorkingYears",
+                "DistanceFromHome", "IncomePerYear"]
+  X_train = X_train.copy()
+  X_test = X_test.copy()
+  scaler = StandardScaler()
+  X_train[scale_cols] = scaler.fit_transform(X_train[scale_cols])
+  X_test[scale_cols] = scaler.transform(X_test[scale_cols])
+  print("Standardized continuous features (scaler fitted on training set only).")
 
   # Calculate dynamic scale_pos_weight for XGBoost based on train set ratio
   neg_count = sum(y_train == 0)
@@ -217,6 +218,8 @@ def main():
 
     print(f"--- Test Evaluation for {name} (Threshold = {optimal_threshold:.4f}) ---")
     print(classification_report(y_test, y_pred_tuned))
+    print(f"Confusion matrix [[TN FP] [FN TP]]: {confusion_matrix(y_test, y_pred_tuned).tolist()}")
+    print(f"Test ROC-AUC: {roc_auc_score(y_test, y_prob_test):.4f}")
 
   # --- VISUALIZATION 1: Side-by-Side Confusion Matrices (Using Tuned Thresholds) ---
   fig, axes = plt.subplots(1, 3, figsize=(15, 5))
